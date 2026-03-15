@@ -1,4 +1,4 @@
-# dexster-discord-transcript
+# `dexster-discord-transcript`
 
 [![npm](https://img.shields.io/npm/dw/dexster-discord-transcript)](http://npmjs.org/package/dexster-discord-transcript)
 [![npm version](https://img.shields.io/npm/v/dexster-discord-transcript)](http://npmjs.org/package/dexster-discord-transcript)
