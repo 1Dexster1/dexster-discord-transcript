@@ -1,115 +1,130 @@
-# `dexster-discord-transcript`
+# dexster-discord-transcript
 
 [![npm](https://img.shields.io/npm/dw/dexster-discord-transcript)](http://npmjs.org/package/dexster-discord-transcript)
-![GitHub package.json version](https://img.shields.io/github/package-json/v/dexster/dexster-discord-transcript)
+[![npm version](https://img.shields.io/npm/v/dexster-discord-transcript)](http://npmjs.org/package/dexster-discord-transcript)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![discord.js](https://img.shields.io/badge/discord.js-v14%2Fv15-5865F2)](https://discord.js.org)
 
-A powerful node.js module to generate nice looking HTML transcripts for Discord. Processes discord markdown like **bold**, _italics_, ~~strikethroughs~~, and more. Nicely formats attachments and embeds. Built in XSS protection, preventing users from inserting arbitrary html tags.
+A robust Node.js module for generating high-fidelity HTML transcripts for Discord. This package specializes in producing transcripts that maintain the exact visual integrity of the Discord interface, supporting modern features and components.
 
-This module can format the following:
+---
 
-- Discord flavored markdown
-- Embeds
-- System messages
-  - Join messages
-  - Message Pins
-  - Boost messages
-- Slash commands
-- Buttons
-- Reactions
-- Attachments
-  - Images, videos, audio, and generic files
-- Replies
-- Mentions
-- Threads
+## Arabic Documentation | التوثيق بالعربية
 
-**This module is designed to work with [discord.js](https://discord.js.org/#/) v14/v15.**
+تعد هذه المكتبة أداة قوية لمطوري برامج ديسكورد (Discord Bots) لإنشاء سجلات محادثات (Transcripts) بصيغة HTML تتميز بدقة عالية ومحاكاة تامة لواجهة ديسكورد الرسمية.
 
-Behind the scenes, this package uses React SSR to generate a static site.
+### المميزات الرئيسية:
+- **دقة التصميم:** محاكاة كاملة لواجهة ديسكورد (الوضع الداكن، الخطوط الرسمية، والأبعاد).
+- **دعم المكونات الحديثة:** دعم كامل لـ Components V2 (Containers, Sections, Media Galleries).
+- **تخصيص كامل:** إمكانية تعديل الألوان، أسماء الملفات، والنصوص التذييلية.
+- **الأمان:** حماية مدمجة ضد هجمات XSS لضمان سلامة العرض في المتصفحات.
+- **ألوان الرتب:** تلوين أسماء المستخدمين بناءً على رتبهم في السيرفر.
 
-## 📝 Usage
+---
 
-### Example usage using the built in message fetcher.
+## Key Features
 
-```js
+- **High-Fidelity Rendering**: Precise replication of the Discord UI, including dark mode styling, typography, and layout.
+- **Markdown Support**: Full processing of Discord flavored markdown (bold, italics, code blocks, etc.).
+- **Component V2 Support**: Complete implementation of modern Discord layout components like Containers, Sections, and Media Galleries.
+- **Interactive Elements**: Properly styled buttons, action rows, and reactions.
+- **Enhanced Mentions**: Accurate rendering of user, role, and channel mentions with integrated role coloring.
+- **System Messaging**: Support for system events such as user joins, boosts, and pinned messages.
+- **XSS Protection**: Comprehensive sanitization to ensure transcripts are safe for browser execution.
+- **Image Persistence**: Capability to embed image data directly within the HTML for offline accessibility.
+
+---
+
+## Installation
+
+```bash
+npm install dexster-discord-transcript
+# or
+pnpm add dexster-discord-transcript
+# or
+yarn add dexster-discord-transcript
+```
+
+---
+
+## Usage
+
+### Basic Implementation
+
+```javascript
 const discordTranscripts = require('dexster-discord-transcript');
-// or (if using typescript) import * as discordTranscripts from 'dexster-discord-transcript';
 
-const channel = message.channel; // or however you get your TextChannel
+// For TypeScript:
+// import * as discordTranscripts from 'dexster-discord-transcript';
 
-// Must be awaited
+const channel = message.channel; 
+
 const attachment = await discordTranscripts.createTranscript(channel);
 
-channel.send({
-  files: [attachment],
-});
+channel.send({ files: [attachment] });
 ```
 
-### Or if you prefer, you can pass in your own messages.
+### Generating from Message Collections
 
-```js
+```javascript
 const discordTranscripts = require('dexster-discord-transcript');
-// or (if using typescript) import * as discordTranscripts from 'dexster-discord-transcript';
 
-const messages = someWayToGetMessages(); // Must be Collection<string, Message> or Message[]
-const channel = someWayToGetChannel(); // Used for ticket name, guild icon, and guild name
+const messages = getMessages(); // Collection<string, Message> or Message[]
+const channel = getChannel();
 
-// Must be awaited
 const attachment = await discordTranscripts.generateFromMessages(messages, channel);
 
-channel.send({
-  files: [attachment],
-});
+channel.send({ files: [attachment] });
 ```
 
-## ⚙️ Configuration
+---
 
-Both methods of generating a transcript allow for an option object as the last parameter.
-**All configuration options are optional!**
+## Configuration Options
 
-### Built in Message Fetcher
+### `createTranscript(channel, options)`
 
-```js
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `limit` | `number` | Maximum messages to fetch (-1 for all). |
+| `returnType` | `string` | Output format: 'buffer', 'string', or 'attachment'. |
+| `filename` | `string` | Name of the output file. |
+| `saveImages` | `boolean` | Embed images directly in HTML. |
+| `poweredBy` | `boolean` | Toggle the "Powered by" footer visibility. |
+| `hydrate` | `boolean` | Enable server-side hydration. |
+| `filter` | `function` | Predicate function to filter messages. |
+
+---
+
+## Advanced: Image Compression
+
+Integration with `sharp` allows for automated image optimization when using `saveImages`:
+
+```javascript
+const { TranscriptImageDownloader } = require('dexster-discord-transcript');
+
 const attachment = await discordTranscripts.createTranscript(channel, {
-    limit: -1, // Max amount of messages to fetch. `-1` recursively fetches.
-    returnType: 'attachment', // Valid options: 'buffer' | 'string' | 'attachment' Default: 'attachment' OR use the enum ExportReturnType
-    filename: 'transcript.html', // Only valid with returnType is 'attachment'. Name of attachment.
-    saveImages: false, // Download all images and include the image data in the HTML (allows viewing the image even after it has been deleted) (! WILL INCREASE FILE SIZE !)
-    footerText: "Exported {number} message{s}", // Change text at footer, don't forget to put {number} to show how much messages got exported, and {s} for plural
-    callbacks: {
-      // register custom callbacks for the following:
-      resolveChannel: (channelId: string) => Awaitable<Channel | null>,
-      resolveUser: (userId: string) => Awaitable<User | null>,
-      resolveRole: (roleId: string) => Awaitable<Role | null>,
-      resolveImageSrc: (
-        attachment: APIAttachment,
-        message: APIMessage
-      ) => Awaitable<string | null | undefined>
-    },
-    poweredBy: true, // Whether to include the "Powered by" footer
-    hydrate: true, // Whether to hydrate the html server-side
-    filter: (message) => true // Filter messages, e.g. (message) => !message.author.bot
+  saveImages: true,
+  callbacks: {
+    resolveImageSrc: new TranscriptImageDownloader()
+      .withMaxSize(5120)            // Maximum size in KB
+      .withCompression(40, true)    // 40% quality, convert to WebP
+      .build(),
+  },
 });
 ```
 
-### Providing your own messages
+---
 
-```js
-const attachment = await discordTranscripts.generateFromMessages(messages, channel, {
-  // Same as createTranscript, except no limit or filter
-});
-```
+## Technical Specifications
 
-### Compressing images
+- **Compatibility**: discord.js v14 & v15.
+- **Engine**: React SSR for server-side HTML generation.
+- **Runtime**: Node.js 18.x or higher.
+- **License**: Apache-2.0.
 
-If `saveImages` is set to `true`, all images will be downloaded and stored in the file _as-is_. You can optionally enable compression by installing the `sharp` module and setting the following options:
+---
 
-```js
-callbacks: {
-  resolveImageSrc: new TranscriptImageDownloader()
-    .withMaxSize(5120) // 5MB in KB
-    .withCompression(40, true) // 40% quality, convert to webp
-    .build(),
-},
-```
+## Author
 
-Note that, in a more advanced setup, you could store a copy of the files and return an entirely new URL pointing to your own image hosting site by implementing a custom `resolveImageSrc` function.
+Developed and maintained by **Ebrahim (1Dexster1)**.
+[GitHub Profile](https://github.com/1Dexster1)
