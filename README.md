@@ -18,7 +18,6 @@ A robust Node.js module for generating high-fidelity HTML transcripts for Discor
 - **دعم المكونات الحديثة:** دعم كامل لـ Components V2 (Containers, Sections, Media Galleries).
 - **تخصيص كامل:** إمكانية تعديل الألوان، أسماء الملفات، والنصوص التذييلية.
 - **الأمان:** حماية مدمجة ضد هجمات XSS لضمان سلامة العرض في المتصفحات.
-- **ألوان الرتب:** تلوين أسماء المستخدمين بناءً على رتبهم في السيرفر.
 
 ---
 
