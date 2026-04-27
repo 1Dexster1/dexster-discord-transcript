@@ -31,6 +31,8 @@ A robust Node.js module for generating high-fidelity HTML transcripts for Discor
 - **System Messaging**: Support for system events such as user joins, boosts, and pinned messages.
 - **XSS Protection**: Comprehensive sanitization to ensure transcripts are safe for browser execution.
 - **Image Persistence**: Capability to embed image data directly within the HTML for offline accessibility.
+- **Lightweight Output (Minified by default)**: Generated HTML is automatically minified (no HTML/CSS/JS comments + compact markup) to reduce file size.
+- **Hosted Transcripts (Open on the Web)**: Upload transcripts to your own hosting provider and send a URL instead of forcing users to download files.
 
 ---
 
@@ -63,6 +65,37 @@ const attachment = await discordTranscripts.createTranscript(channel);
 channel.send({ files: [attachment] });
 ```
 
+### Hosted Transcript (Open in browser)
+
+Instead of sending an `.html` file attachment, you can upload the generated transcript to any hosting provider you want
+(your own server, Cloudflare R2, S3, a paste service, etc.) and send the **URL**.
+
+```javascript
+const discordTranscripts = require('dexster-discord-transcript');
+
+const result = await discordTranscripts.createHostedTranscript(message.channel, {
+  // You implement the upload — keep the provider choice fully in your hands.
+  upload: async ({ html, filename, password }) => {
+    // Example pseudo-code:
+    // const url = await myUploader(html, { filename, password })
+    // return { url }
+    return { url: 'https://your-host.example/transcripts/' + filename };
+  },
+
+  // Optional: static password or auto-generated
+  // password: 'MySecret123',
+  passwordLength: 12,
+
+  // Optional: name
+  filename: `transcript-${message.channel.id}.html`,
+});
+
+// result = { url, password, filename }
+await message.reply(
+  `Transcript: ${result.url}\nPassword: ${result.password}`
+);
+```
+
 ### Generating from Message Collections
 
 ```javascript
@@ -91,6 +124,15 @@ channel.send({ files: [attachment] });
 | `poweredBy` | `boolean` | Toggle the "Powered by" footer visibility. |
 | `hydrate` | `boolean` | Enable server-side hydration. |
 | `filter` | `function` | Predicate function to filter messages. |
+
+### `createHostedTranscript(channel, options)`
+
+Same options as `createTranscript(..., { returnType: 'string' })` plus:
+
+- **`upload`**: `(payload) => Promise<{ url: string }>` (required)  
+  Receives `{ html, filename, password }` and must return `{ url }`.
+- **`password`**: `string` (optional) — if omitted, a random password is generated.
+- **`passwordLength`**: `number` (optional) — default 12.
 
 ---
 
