@@ -71,29 +71,71 @@ Instead of sending an `.html` file attachment, you can upload the generated tran
 (your own server, Cloudflare R2, S3, a paste service, etc.) and send the **URL**.
 
 ```javascript
+const { Client, GatewayIntentBits } = require('discord.js');
 const discordTranscripts = require('dexster-discord-transcript');
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 
-const result = await discordTranscripts.createHostedTranscript(message.channel, {
-  // You implement the upload — keep the provider choice fully in your hands.
-  upload: async ({ html, filename, password }) => {
-    // Example pseudo-code:
-    // const url = await myUploader(html, { filename, password })
-    // return { url }
-    return { url: 'https://your-host.example/transcripts/' + filename };
-  },
+const app = express();
+const PORT = process.env.PORT || 10001; // Change this to your allocated port
+const transcriptsDir = path.join(__dirname, 'transcripts');
 
-  // Optional: static password or auto-generated
-  // password: 'MySecret123',
-  passwordLength: 12,
+if (!fs.existsSync(transcriptsDir)) {
+  fs.mkdirSync(transcriptsDir);
+}
+const passwords = new Map(); // Store passwords in memory for authentication
 
-  // Optional: name
-  filename: `transcript-${message.channel.id}.html`,
+app.get('/transcripts/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const expectedPassword = passwords.get(filename);
+
+  if (expectedPassword) {
+    const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+    if (password !== expectedPassword) {
+      res.set('WWW-Authenticate', 'Basic realm="Enter the transcript password"');
+      return res.status(401).send('Authentication required. Enter the password provided by the bot.');
+    }
+  }
+
+  const filePath = path.join(transcriptsDir, filename);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Transcript not found.');
+  }
 });
 
-// result = { url, password, filename }
-await message.reply(
-  `Transcript: ${result.url}\nPassword: ${result.password}`
-);
+app.listen(PORT, () => console.log(`[SERVER] Transcript server running on port ${PORT}`));
+
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
+});
+
+client.on('messageCreate', async (message) => {
+  if (message.content === '!hosted-transcript' && message.member.permissions.has('Administrator')) {
+    const statusMsg = await message.reply('Generating your hosted transcript...');
+
+    const result = await discordTranscripts.createHostedTranscript(message.channel, {
+      limit: 100, // Export up to 100 messages (-1 for all)
+      saveImages: true,
+      upload: async ({ html, filename, password }) => {
+        const filePath = path.join(transcriptsDir, filename);
+        fs.writeFileSync(filePath, html); // Save locally
+        passwords.set(filename, password); // Save password for auth
+        
+        const baseUrl = `http://YOUR_SERVER_IP:${PORT}`; // or Domain
+        return { url: `${baseUrl}/transcripts/${filename}` };
+      }
+    });
+
+    await statusMsg.edit(`Transcript generated successfully!\n**Link:** ${result.url}\n**Password:** ${result.password}`);
+  }
+});
+
+client.login('YOUR_BOT_TOKEN_HERE');
 ```
 
 ### Generating from Message Collections
